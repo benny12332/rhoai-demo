@@ -1,9 +1,7 @@
 # =============================================================
-# RHOAI Demo - Operator 安裝清單 (Namespace + Subscription)
-# 注意: OperatorGroup 不在此檔案，由 install.sh 判斷建立，
-#       避免與 GUI 安裝殘留的 OperatorGroup 衝突
-#       (一個 namespace 只能有一個 OperatorGroup)
-# 使用: ./install.sh   (或先跑 install.sh 再 oc apply -f 本檔)
+# RHOAI Demo - Operator 清單 (僅供參考/一次性批次安裝用)
+# 正式流程請用 ./install.sh — 它會「一個裝完、驗證過再裝下一個」，
+# 且自動處理 OperatorGroup (沒有才建、已有沿用、多個報錯)
 # =============================================================
 
 # ---------- Namespaces ----------
