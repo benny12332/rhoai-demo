@@ -213,6 +213,7 @@ render_menu() {
   clear
   echo "${REV}${BOLD} 此程序僅適用在 RHDP 中的 AWS with OpenShift Open Environment ${R}"
   echo "${REV} 執行需求: bash 3.2+ / oc CLI 4.19+ / jq / curl / python3 | cluster-admin 帳密 ${R}"
+  echo "${REV} 選用: aws CLI (GPU AZ 無資源需換區且 subnet 不存在時，用來自動建 subnet)   ${R}"
   echo "${REV} 叢集需求: OCP 4.19+ (llm-d 建議 4.20) 且可連網拉 image 與 HuggingFace 模型 ${R}"
   echo "${REV} 執行機不需連 GitHub/grafana.com (儀表板離線副本在 00_prepare/source)      ${R}"
   echo ""
