@@ -1,0 +1,53 @@
+# =============================================================
+# RHOAI Demo - 手冊 11-4: 下載測試模型 (以 Job 取代進 Jupyter 手動下載)
+# 下載 RedHatAI/Qwen3-14B-quantized.w4a16 (~10GB, 公開 repo 免 token)
+# =============================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-qwen3-14b
+  namespace: demo
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      # 跑在 GPU 節點上, 讓 EBS PV 建在與 Workbench 相同的 AZ (EBS 是 zonal)
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      nodeSelector:
+        node-role.kubernetes.io/gpu: ''
+      containers:
+        - name: download
+          image: registry.access.redhat.com/ubi9/python-311:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              MODEL_DIR=/models/Qwen3-14B-quantized.w4a16
+              if [ -f "${MODEL_DIR}/.download_complete" ]; then
+                echo "模型已存在，跳過下載"; exit 0
+              fi
+              pip install --no-cache-dir -q huggingface_hub
+              python - <<'PY'
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  repo_id="RedHatAI/Qwen3-14B-quantized.w4a16",
+                  local_dir="/models/Qwen3-14B-quantized.w4a16",
+              )
+              PY
+              touch "${MODEL_DIR}/.download_complete"
+              echo "下載完成:"; du -sh "${MODEL_DIR}"
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: models

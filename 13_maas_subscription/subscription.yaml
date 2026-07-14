@@ -1,0 +1,70 @@
+# =============================================================
+# RHOAI Demo - 手冊 14.1 MaaS Subscription
+# 訂閱 demo 專案下的兩個模型並設定速限/計費
+# =============================================================
+# 模型引用 (與 LLMInferenceService 同 namespace、同名)
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: qwen3-14b-vllm
+  namespace: demo
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: qwen3-14b-vllm
+---
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: qwen3-14b-llmd
+  namespace: demo
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: qwen3-14b-llmd
+---
+# 授權政策: 允許訂閱者呼叫模型 (GUI 部署時由 Dashboard 自動建立, yaml 部署需自行補上)
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: demo-auth-policy
+  namespace: models-as-a-service
+spec:
+  subjects:
+    groups:
+      - name: system:authenticated   # 與 Subscription owner 一致
+  modelRefs:
+    - name: qwen3-14b-vllm
+      namespace: demo
+    - name: qwen3-14b-llmd
+      namespace: demo
+---
+# 手冊 14.1: Subscription (名稱/群組/模型/速限)
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: demo-subscription
+  namespace: models-as-a-service
+spec:
+  owner:
+    groups:
+      - name: system:authenticated   # demo 用: 所有登入使用者; 正式環境請換成專屬群組
+  priority: 1
+  modelRefs:
+    - name: qwen3-14b-vllm
+      namespace: demo
+      billingRate:
+        perToken: "0.0001"
+      tokenRateLimits:
+        - limit: 50000    # 每分鐘 50k tokens
+          window: 1m
+    - name: qwen3-14b-llmd
+      namespace: demo
+      billingRate:
+        perToken: "0.0001"
+      tokenRateLimits:
+        - limit: 50000
+          window: 1m
+  tokenMetadata:
+    labels:
+      project: rhoai-demo

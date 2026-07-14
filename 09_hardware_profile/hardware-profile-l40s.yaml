@@ -1,0 +1,47 @@
+# =============================================================
+# RHOAI Demo - 手冊 10. 建立 GPU Hardware Profile
+# 供 Workbench 與模型部署選用
+# 針對 g6e.12xlarge (4x NVIDIA L40S / 48 vCPU / 384 GiB)
+# 使用: oc apply -f hardware-profile-l40s.yaml
+# 驗證: Dashboard > Settings > Hardware profiles 應出現 NVIDIA L40S
+# =============================================================
+apiVersion: infrastructure.opendatahub.io/v1
+kind: HardwareProfile
+metadata:
+  name: nvidia-l40s
+  namespace: redhat-ods-applications
+  annotations:
+    opendatahub.io/display-name: NVIDIA L40S
+    opendatahub.io/description: "g6e.12xlarge GPU node (4x L40S)"
+    opendatahub.io/disabled: 'false'
+    opendatahub.io/dashboard-feature-visibility: '[]'
+spec:
+  identifiers:
+    - displayName: NVIDIA GPU
+      identifier: nvidia.com/gpu
+      resourceType: Accelerator
+      minCount: 1
+      maxCount: 4
+      defaultCount: 1
+    - displayName: CPU
+      identifier: cpu
+      resourceType: CPU
+      minCount: 2
+      maxCount: 40
+      defaultCount: 8
+    - displayName: Memory
+      identifier: memory
+      resourceType: Memory
+      minCount: 8Gi
+      maxCount: 300Gi
+      defaultCount: 64Gi
+  # GPU 節點有 nvidia.com/gpu taint, 必須帶 toleration 才排得上去
+  scheduling:
+    type: Node
+    node:
+      nodeSelector:
+        node-role.kubernetes.io/gpu: ''
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

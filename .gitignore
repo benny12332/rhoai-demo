@@ -1,0 +1,5 @@
+# 執行期暫存/敏感檔
+.demo_state
+13_maas_subscription/maas-api-key.env
+11_model_registry/registry-ids.env
+.DS_Store

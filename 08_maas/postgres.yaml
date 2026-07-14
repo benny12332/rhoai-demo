@@ -1,0 +1,55 @@
+# =============================================================
+# RHOAI Demo - 手冊 9.1 / Appendix A1: MaaS 用 Postgres
+# =============================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+  namespace: redhat-ods-applications
+spec:
+  serviceName: postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+  template:
+    metadata:
+      labels:
+        app: postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: registry.redhat.io/rhel9/postgresql-16:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRESQL_USER
+              value: maasadmin
+            - name: POSTGRESQL_PASSWORD
+              value: maaspassword
+            - name: POSTGRESQL_DATABASE
+              value: maasdb
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/pgsql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql
+  namespace: redhat-ods-applications
+spec:
+  selector:
+    app: postgresql
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

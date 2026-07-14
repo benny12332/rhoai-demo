@@ -1,0 +1,15 @@
+# =============================================================
+# RHOAI Demo - 手冊 5. 設定 JobSetOperator
+# 前提: 01_install_operator 已裝 Job Set Operator (job-set)
+# 使用: oc apply -f jobset-operator.yaml
+# 驗證: oc get pod -n openshift-jobset-operator
+#       (應看到 jobset-controller-manager-* Running)
+# =============================================================
+kind: JobSetOperator
+apiVersion: operator.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  logLevel: Normal
+  managementState: Managed
+  operatorLogLevel: Normal

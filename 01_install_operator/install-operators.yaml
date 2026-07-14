@@ -1,0 +1,211 @@
+# =============================================================
+# RHOAI Demo - Operator 安裝清單 (Namespace + Subscription)
+# 注意: OperatorGroup 不在此檔案，由 install.sh 判斷建立，
+#       避免與 GUI 安裝殘留的 OperatorGroup 衝突
+#       (一個 namespace 只能有一個 OperatorGroup)
+# 使用: ./install.sh   (或先跑 install.sh 再 oc apply -f 本檔)
+# =============================================================
+
+# ---------- Namespaces ----------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-nfd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nvidia-gpu-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-keda
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redhat-ods-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-jobset-operator
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-lws-operator
+---
+# ---------- 1. cert-manager Operator for Red Hat OpenShift ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-cert-manager-operator
+  namespace: cert-manager-operator
+spec:
+  name: openshift-cert-manager-operator
+  channel: stable-v1
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 2. Node Feature Discovery (NFD) Operator ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: nfd
+  namespace: openshift-nfd
+spec:
+  name: nfd
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 3. NVIDIA GPU Operator ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: gpu-operator-certified
+  namespace: nvidia-gpu-operator
+spec:
+  name: gpu-operator-certified
+  # channel 省略，使用 default channel（NVIDIA 以版本命名，如 v25.3）
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 4. Red Hat Connectivity Link (含 Authorino/Limitador/DNS 子 Operator) ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhcl-operator
+  namespace: openshift-operators
+spec:
+  name: rhcl-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 5. Red Hat build of Leader Worker Set ----------
+# 不支援 AllNamespaces，需裝在專屬 namespace (OwnNamespace 模式)
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: leader-worker-set
+  namespace: openshift-lws-operator
+spec:
+  name: leader-worker-set
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 6. Red Hat build of Kueue (RHBOK) ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kueue-operator
+  namespace: openshift-operators
+spec:
+  name: kueue-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 7. Job Set Operator (套件名: job-set, 需 OCP 4.18+) ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: job-set
+  namespace: openshift-jobset-operator
+spec:
+  name: job-set
+  channel: stable-v1.0
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 8. Custom Metrics Autoscaler (KEDA) ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: openshift-keda
+spec:
+  name: openshift-custom-metrics-autoscaler-operator
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 9. Red Hat OpenShift Service Mesh 3 ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: servicemeshoperator3
+  namespace: openshift-operators
+spec:
+  name: servicemeshoperator3
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 10. Red Hat OpenShift AI (RHOAI) ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: rhods-operator
+  namespace: redhat-ods-operator
+spec:
+  name: rhods-operator
+  channel: stable-3.4   # 手冊為 RHOAI 3.4; "stable" 目前仍指向 2.x
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ============ 觀測堆疊 (MaaS Observability Dashboard) ============
+# ---------- 11. Cluster Observability Operator ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: cluster-observability-operator
+  namespace: openshift-operators
+spec:
+  name: cluster-observability-operator
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 12. Tempo Operator ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-operators
+spec:
+  name: tempo-product
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+---
+# ---------- 13. Red Hat build of OpenTelemetry ----------
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-operators
+spec:
+  name: opentelemetry-product
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

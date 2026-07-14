@@ -1,0 +1,51 @@
+# =============================================================
+# RHOAI Demo - 手冊 13.1 部署模型 (vLLM)
+# 單節點 vLLM (無 llm-d scheduler), 掛 demo/models PVC
+# 暴露到 MaaS Gateway (§14 訂閱用)
+# =============================================================
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: qwen3-14b-vllm
+  namespace: demo
+  annotations:
+    # 空陣列 = 所有 MaaS tier 都可訂閱
+    alpha.maas.opendatahub.io/tiers: '[]'
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  replicas: 1
+  model:
+    # 用 hf:// 避免 RWO PVC 多 pod 掛載衝突 (workbench/vllm/llmd/scheduler 搶同一顆 EBS)
+    uri: hf://RedHatAI/Qwen3-14B-quantized.w4a16
+    name: qwen3-14b-vllm
+  router:
+    route: {}
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+  template:
+    containers:
+      - name: main
+        args:
+          # 手冊 13.1-5 建議啟動參數
+          - --dtype=auto
+          - --max-model-len=32768
+          - --enable-auto-tool-choice
+          - --tool-call-parser=hermes
+          - --reasoning-parser=qwen3
+          - --gpu-memory-utilization=0.95
+        resources:
+          requests:
+            cpu: '4'
+            memory: 32Gi
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: '8'
+            memory: 48Gi
+            nvidia.com/gpu: "1"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

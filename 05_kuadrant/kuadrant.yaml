@@ -1,0 +1,36 @@
+# =============================================================
+# RHOAI Demo - 手冊 6. 設定 Kuadrant (宣告式部分)
+# 由 setup-kuadrant.sh 依正確順序套用
+# =============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kuadrant-system
+---
+# 手冊 6-2: Kuadrant CR (啟用 observability)
+apiVersion: kuadrant.io/v1beta1
+kind: Kuadrant
+metadata:
+  name: kuadrant
+  namespace: kuadrant-system
+spec:
+  observability:
+    enable: true
+---
+# 手冊 6-4: Authorino 啟用 SSL
+apiVersion: operator.authorino.kuadrant.io/v1beta1
+kind: Authorino
+metadata:
+  name: authorino
+  namespace: kuadrant-system
+spec:
+  replicas: 1
+  clusterWide: true
+  listener:
+    tls:
+      enabled: true
+      certSecretRef:
+        name: authorino-server-cert
+  oidcServer:
+    tls:
+      enabled: false

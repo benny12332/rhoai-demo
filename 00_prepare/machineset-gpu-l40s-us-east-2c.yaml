@@ -1,0 +1,87 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  name: cluster-s4sjn-p94c2-gpu-l40s-us-east-2c
+  namespace: openshift-machine-api
+  labels:
+    machine.openshift.io/cluster-api-cluster: cluster-s4sjn-p94c2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: cluster-s4sjn-p94c2
+      machine.openshift.io/cluster-api-machineset: cluster-s4sjn-p94c2-gpu-l40s-us-east-2c
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: cluster-s4sjn-p94c2
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: cluster-s4sjn-p94c2-gpu-l40s-us-east-2c
+    spec:
+      lifecycleHooks: {}
+      metadata:
+        labels:
+          node-role.kubernetes.io/gpu: ""
+          nvidia.com/gpu.present: "true"
+      # GPU 節點打 taint，避免一般 workload 排上昂貴的 GPU 機器
+      taints:
+        - key: nvidia.com/gpu
+          value: "true"
+          effect: NoSchedule
+      providerSpec:
+        value:
+          apiVersion: machine.openshift.io/v1beta1
+          kind: AWSMachineProviderConfig
+          userDataSecret:
+            name: worker-user-data
+          credentialsSecret:
+            name: aws-cloud-credentials
+          instanceType: g6e.12xlarge          # 4 x NVIDIA L40S
+          placement:
+            availabilityZone: us-east-2c
+            region: us-east-2
+          ami:
+            id: ami-0551cfffb0c3f0e45
+          blockDevices:
+            - ebs:
+                encrypted: true
+                iops: 0
+                kmsKey:
+                  arn: ''
+                volumeSize: 200             # GPU/AI 映像檔較大，root volume 放大到 200GB
+                volumeType: gp3
+          iamInstanceProfile:
+            id: cluster-s4sjn-p94c2-worker-profile
+          securityGroups:
+            - filters:
+                - name: 'tag:Name'
+                  values:
+                    - cluster-s4sjn-p94c2-node
+            - filters:
+                - name: 'tag:Name'
+                  values:
+                    - cluster-s4sjn-p94c2-lb
+          subnet:
+            filters:
+              - name: 'tag:Name'
+                values:
+                  - cluster-s4sjn-p94c2-subnet-private-us-east-2c
+          deviceIndex: 0
+          metadataServiceOptions: {}
+          capacityReservationId: ''
+          tags:
+            - name: kubernetes.io/cluster/cluster-s4sjn-p94c2
+              value: owned
+            - name: Stack
+              value: project ocp4-cluster-s4sjn
+            - name: env_type
+              value: ocp4-cluster
+            - name: guid
+              value: s4sjn
+            - name: owner
+              value: unknown
+            - name: platform
+              value: RHPDS
+            - name: uuid
+              value: 620c16b4-20e0-5c83-bc49-9a8077019f19

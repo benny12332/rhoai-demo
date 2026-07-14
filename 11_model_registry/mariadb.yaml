@@ -1,0 +1,76 @@
+# =============================================================
+# RHOAI Demo - 手冊 12 / Appendix A3: Model Registry 用 MariaDB
+# =============================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-password
+  namespace: rhoai-model-registries
+type: Opaque
+stringData:
+  database-password: admin
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb
+  namespace: rhoai-model-registries
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: mariadb
+  namespace: rhoai-model-registries
+spec:
+  replicas: 1
+  serviceName: mariadb
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      volumes:
+        - name: mariadb
+          persistentVolumeClaim:
+            claimName: mariadb
+      containers:
+        - name: mariadb
+          # OpenShift 友善 image (支援隨機 UID); docker.io 的 mariadb 會因 SCC CrashLoop
+          image: registry.redhat.io/rhel9/mariadb-1011:latest
+          env:
+            - name: MYSQL_USER
+              value: admin
+            - name: MYSQL_PASSWORD
+              value: admin
+            - name: MYSQL_DATABASE
+              value: registry
+            - name: MYSQL_ROOT_PASSWORD
+              value: admin
+          ports:
+            - name: db
+              containerPort: 3306
+              protocol: TCP
+          volumeMounts:
+            - name: mariadb
+              mountPath: /var/lib/mysql/data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: rhoai-model-registries
+spec:
+  selector:
+    app: mariadb
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306

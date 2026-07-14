@@ -1,0 +1,65 @@
+# =============================================================
+# RHOAI Demo - 手冊 9.2 MaaS Gateway (宣告式部分)
+# Route 的 host 依叢集網域動態產生, 由 setup-maas.sh 建立
+# =============================================================
+# 9.2-1: Gateway 設定
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maas-default-gateway-config
+  namespace: openshift-ingress
+  labels:
+    platform.opendatahub.io/part-of: gatewayconfig
+data:
+  deployment: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: istio-proxy
+            resources:
+              requests:
+                cpu: "1"
+                memory: "2Gi"
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+  service: |
+    metadata:
+      annotations:
+        # 讓 OpenShift 自動幫這個 Service 簽發內部 TLS 憑證
+        service.beta.openshift.io/serving-cert-secret-name: "maas-default-gateway-service-tls"
+    spec:
+      type: ClusterIP
+---
+# 9.2-2: MaaS Gateway
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    opendatahub.io/managed: 'false'
+    security.opendatahub.io/authorino-tls-bootstrap: 'true'
+  name: maas-default-gateway
+  namespace: openshift-ingress
+  labels:
+    istio.io/rev: openshift-gateway
+spec:
+  gatewayClassName: data-science-gateway-class
+  infrastructure:
+    parametersRef:
+      group: ''
+      kind: ConfigMap
+      name: maas-default-gateway-config
+  listeners:
+    - allowedRoutes:
+        namespaces:
+          from: All
+      name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - group: ''
+            kind: Secret
+            name: maas-default-gateway-service-tls
+        mode: Terminate

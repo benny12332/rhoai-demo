@@ -1,0 +1,49 @@
+# =============================================================
+# RHOAI Demo - 手冊 13.2 部署模型 (llm-d)
+# 與 13.1 相同, 差別在啟用 llm-d scheduler (智慧路由)
+# =============================================================
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: qwen3-14b-llmd
+  namespace: demo
+  annotations:
+    alpha.maas.opendatahub.io/tiers: '[]'
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  replicas: 1
+  model:
+    # 用 hf:// 避免 RWO PVC 多 pod 掛載衝突 (workbench/vllm/llmd/scheduler 搶同一顆 EBS)
+    uri: hf://RedHatAI/Qwen3-14B-quantized.w4a16
+    name: qwen3-14b-llmd
+  router:
+    route: {}
+    scheduler: {}          # llm-d inference scheduler
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+  template:
+    containers:
+      - name: main
+        args:
+          - --dtype=auto
+          - --max-model-len=32768
+          - --enable-auto-tool-choice
+          - --tool-call-parser=hermes
+          - --reasoning-parser=qwen3
+          - --gpu-memory-utilization=0.95
+        resources:
+          requests:
+            cpu: '4'
+            memory: 32Gi
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: '8'
+            memory: 48Gi
+            nvidia.com/gpu: "1"
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

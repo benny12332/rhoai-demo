@@ -1,0 +1,62 @@
+# =============================================================
+# RHOAI Demo - 手冊 8.2 llm-d 推論 Gateway (宣告式部分)
+# Route 的 host 依叢集網域動態產生, 由 setup-llmd.sh 建立
+# 前提: §7 已完成 (需要 data-science-gateway-class)
+# =============================================================
+# 8.2-1: Gateway 設定
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshift-ai-inference-config
+  namespace: openshift-ingress
+  labels:
+    platform.opendatahub.io/part-of: gatewayconfig
+data:
+  deployment: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: istio-proxy
+            resources:
+              requests:
+                cpu: "1"
+                memory: "2Gi"
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+  service: |
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: "openshift-ai-inference-service-tls"
+    spec:
+      type: ClusterIP
+---
+# 8.2-2: 推論 Gateway
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: openshift-ai-inference
+  namespace: openshift-ingress
+  labels:
+    istio.io/rev: openshift-gateway
+spec:
+  gatewayClassName: data-science-gateway-class
+  infrastructure:
+    parametersRef:
+      group: ''
+      kind: ConfigMap
+      name: openshift-ai-inference-config
+  listeners:
+    - allowedRoutes:
+        namespaces:
+          from: All
+      name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - group: ''
+            kind: Secret
+            name: openshift-ai-inference-service-tls
+        mode: Terminate
