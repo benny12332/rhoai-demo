@@ -19,16 +19,16 @@ OPERATORS=(
   "cert-manager Operator|openshift-cert-manager-operator|cert-manager-operator|stable-v1|redhat-operators|own|cert-manager|"
   "Node Feature Discovery|nfd|openshift-nfd|stable|redhat-operators|own|nfd|"
   "NVIDIA GPU Operator|gpu-operator-certified|nvidia-gpu-operator||certified-operators|own|gpu-operator|"
-  "Red Hat Connectivity Link|rhcl-operator|openshift-operators||redhat-operators|none|rhcl-operator.v1.3.4|rhcl-operator.v1.3.4"
+  "Red Hat Connectivity Link|rhcl-operator|rhcl-operator||redhat-operators|all|rhcl-operator.v1.3.4|rhcl-operator.v1.3.4"
   "Leader Worker Set|leader-worker-set|openshift-lws-operator||redhat-operators|own|leader-worker-set|"
-  "Red Hat build of Kueue|kueue-operator|openshift-operators||redhat-operators|none|kueue|"
+  "Red Hat build of Kueue|kueue-operator|openshift-kueue-operator||redhat-operators|all|kueue|"
   "Job Set Operator|job-set|openshift-jobset-operator|stable-v1.0|redhat-operators|own|jobset|"
   "Custom Metrics Autoscaler|openshift-custom-metrics-autoscaler-operator|openshift-keda|stable|redhat-operators|all|custom-metrics-autoscaler|"
-  "Service Mesh 3|servicemeshoperator3|openshift-operators|stable|redhat-operators|none|servicemeshoperator3|"
+  "Service Mesh 3|servicemeshoperator3|openshift-servicemesh3-operator|stable|redhat-operators|all|servicemeshoperator3|"
   "Red Hat OpenShift AI|rhods-operator|redhat-ods-operator|stable-3.4|redhat-operators|all|rhods-operator.3|"
-  "Cluster Observability|cluster-observability-operator|openshift-operators|stable|redhat-operators|none|cluster-observability|"
-  "Tempo Operator|tempo-product|openshift-operators|stable|redhat-operators|none|tempo|"
-  "OpenTelemetry|opentelemetry-product|openshift-operators|stable|redhat-operators|none|opentelemetry|"
+  "Cluster Observability|cluster-observability-operator|openshift-cluster-observability-operator|stable|redhat-operators|all|cluster-observability|"
+  "Tempo Operator|tempo-product|openshift-tempo-operator|stable|redhat-operators|all|tempo|"
+  "OpenTelemetry|opentelemetry-product|openshift-opentelemetry-operator|stable|redhat-operators|all|opentelemetry|"
 )
 
 csv_ok() { # csv_ok <ns> <關鍵字>

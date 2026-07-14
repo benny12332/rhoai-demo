@@ -74,7 +74,7 @@ pre_check() {
       csv_ok openshift-jobset-operator jobset || { echo "${RED}Job Set Operator 未就緒${R}"; return 1; } ;;
     05_kuadrant)
       need_login || return 1
-      csv_ok openshift-operators rhcl-operator || { echo "${RED}RHCL Operator 未就緒${R}"; return 1; } ;;
+      csv_ok rhcl-operator rhcl-operator || { echo "${RED}RHCL Operator 未就緒${R}"; return 1; } ;;
     06_rhoai)
       need_login || return 1
       oc get csv -n redhat-ods-operator 2>/dev/null | grep -q 'rhods-operator\.3\.' \
@@ -137,11 +137,11 @@ do_verify() {
       local f=0 e
       for e in \
         "cert-manager-operator|cert-manager" "openshift-nfd|nfd" "nvidia-gpu-operator|gpu-operator" \
-        "openshift-operators|rhcl-operator" "openshift-lws-operator|leader-worker-set" \
-        "openshift-operators|kueue" "openshift-jobset-operator|jobset" \
-        "openshift-keda|custom-metrics-autoscaler" "openshift-operators|servicemeshoperator3" \
-        "redhat-ods-operator|rhods-operator" "openshift-operators|cluster-observability" \
-        "openshift-operators|tempo" "openshift-operators|opentelemetry"; do
+        "rhcl-operator|rhcl-operator" "openshift-lws-operator|leader-worker-set" \
+        "openshift-kueue-operator|kueue" "openshift-jobset-operator|jobset" \
+        "openshift-keda|custom-metrics-autoscaler" "openshift-servicemesh3-operator|servicemeshoperator3" \
+        "redhat-ods-operator|rhods-operator" "openshift-cluster-observability-operator|cluster-observability" \
+        "openshift-tempo-operator|tempo" "openshift-opentelemetry-operator|opentelemetry"; do
         local ns="${e%%|*}" key="${e##*|}"
         if wait_for "CSV $key ($ns)" 60 15 csv_ok "$ns" "$key"; then :; else f=1; fi
       done
