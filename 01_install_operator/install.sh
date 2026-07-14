@@ -12,22 +12,23 @@ set -euo pipefail
 MARKET_NS=openshift-marketplace
 CSV_TIMEOUT=60   # 每個 operator 等待次數 (x10s = 10 分鐘)
 
-# 格式: 顯示名稱|套件名|安裝ns|channel(空=default)|catalog|og模式|csv關鍵字
+# 格式: 顯示名稱|套件名|安裝ns|channel(空=default)|catalog|og模式|csv關鍵字|鎖定版本CSV(空=最新)
 #   og模式: own=OwnNamespace, all=AllNamespaces, none=openshift-operators(免OG)
+#   鎖定版本: 填 startingCSV (如 rhcl-operator.v1.3.4), OLM 會停在該版不自動升級
 OPERATORS=(
-  "cert-manager Operator|openshift-cert-manager-operator|cert-manager-operator|stable-v1|redhat-operators|own|cert-manager"
-  "Node Feature Discovery|nfd|openshift-nfd|stable|redhat-operators|own|nfd"
-  "NVIDIA GPU Operator|gpu-operator-certified|nvidia-gpu-operator||certified-operators|own|gpu-operator"
-  "Red Hat Connectivity Link|rhcl-operator|openshift-operators||redhat-operators|none|rhcl-operator"
-  "Leader Worker Set|leader-worker-set|openshift-lws-operator||redhat-operators|own|leader-worker-set"
-  "Red Hat build of Kueue|kueue-operator|openshift-operators||redhat-operators|none|kueue"
-  "Job Set Operator|job-set|openshift-jobset-operator|stable-v1.0|redhat-operators|own|jobset"
-  "Custom Metrics Autoscaler|openshift-custom-metrics-autoscaler-operator|openshift-keda|stable|redhat-operators|all|custom-metrics-autoscaler"
-  "Service Mesh 3|servicemeshoperator3|openshift-operators|stable|redhat-operators|none|servicemeshoperator3"
-  "Red Hat OpenShift AI|rhods-operator|redhat-ods-operator|stable-3.4|redhat-operators|all|rhods-operator.3"
-  "Cluster Observability|cluster-observability-operator|openshift-operators|stable|redhat-operators|none|cluster-observability"
-  "Tempo Operator|tempo-product|openshift-operators|stable|redhat-operators|none|tempo"
-  "OpenTelemetry|opentelemetry-product|openshift-operators|stable|redhat-operators|none|opentelemetry"
+  "cert-manager Operator|openshift-cert-manager-operator|cert-manager-operator|stable-v1|redhat-operators|own|cert-manager|"
+  "Node Feature Discovery|nfd|openshift-nfd|stable|redhat-operators|own|nfd|"
+  "NVIDIA GPU Operator|gpu-operator-certified|nvidia-gpu-operator||certified-operators|own|gpu-operator|"
+  "Red Hat Connectivity Link|rhcl-operator|openshift-operators||redhat-operators|none|rhcl-operator.v1.3.4|rhcl-operator.v1.3.4"
+  "Leader Worker Set|leader-worker-set|openshift-lws-operator||redhat-operators|own|leader-worker-set|"
+  "Red Hat build of Kueue|kueue-operator|openshift-operators||redhat-operators|none|kueue|"
+  "Job Set Operator|job-set|openshift-jobset-operator|stable-v1.0|redhat-operators|own|jobset|"
+  "Custom Metrics Autoscaler|openshift-custom-metrics-autoscaler-operator|openshift-keda|stable|redhat-operators|all|custom-metrics-autoscaler|"
+  "Service Mesh 3|servicemeshoperator3|openshift-operators|stable|redhat-operators|none|servicemeshoperator3|"
+  "Red Hat OpenShift AI|rhods-operator|redhat-ods-operator|stable-3.4|redhat-operators|all|rhods-operator.3|"
+  "Cluster Observability|cluster-observability-operator|openshift-operators|stable|redhat-operators|none|cluster-observability|"
+  "Tempo Operator|tempo-product|openshift-operators|stable|redhat-operators|none|tempo|"
+  "OpenTelemetry|opentelemetry-product|openshift-operators|stable|redhat-operators|none|opentelemetry|"
 )
 
 csv_ok() { # csv_ok <ns> <關鍵字>
@@ -68,8 +69,28 @@ EOF
   fi
 }
 
+approve_installplan() { # approve_installplan <ns> <套件名>
+  # 所有 Subscription 都是 Manual approval (禁止自動升級),
+  # 首次安裝的 InstallPlan 由此函式核准
+  local ns="$1" pkg="$2" i ip approved
+  echo "    等待 InstallPlan 出現並核准"
+  for i in $(seq 1 30); do
+    ip=$(oc get subscription "$pkg" -n "$ns" -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || true)
+    if [ -n "$ip" ]; then
+      approved=$(oc get installplan "$ip" -n "$ns" -o jsonpath='{.spec.approved}' 2>/dev/null || true)
+      if [ "$approved" = "false" ]; then
+        oc patch installplan "$ip" -n "$ns" --type merge -p '{"spec":{"approved":true}}' >/dev/null
+        echo "    InstallPlan ${ip} 已核准"
+      fi
+      return 0
+    fi
+    sleep 10
+  done
+  echo "!!! 等不到 ${pkg} 的 InstallPlan"; return 1
+}
+
 install_one() {
-  local display="$1" pkg="$2" ns="$3" channel="$4" src="$5" og="$6" csvkey="$7"
+  local display="$1" pkg="$2" ns="$3" channel="$4" src="$5" og="$6" csvkey="$7" pincsv="$8"
 
   # 已裝好 -> 跳過
   if csv_ok "$ns" "$csvkey"; then
@@ -77,10 +98,12 @@ install_one() {
     return 0
   fi
 
-  echo ">>> 安裝 ${display} (${pkg} @ ${ns})"
+  echo ">>> 安裝 ${display} (${pkg} @ ${ns})${pincsv:+ [鎖定 ${pincsv}]}"
   [ "$og" != "none" ] && ensure_ns "$ns" && ensure_og "$ns" "$og"
 
   # Subscription (channel 為空則用套件 default channel)
+  # 全部 Manual approval: 首次安裝由腳本核准, 之後的升級 InstallPlan
+  # 會停在待核准狀態 => 不會自動升級
   {
     echo "apiVersion: operators.coreos.com/v1alpha1"
     echo "kind: Subscription"
@@ -90,9 +113,12 @@ install_one() {
     [ -n "$channel" ] && echo "  channel: ${channel}"
     echo "  source: ${src}"
     echo "  sourceNamespace: ${MARKET_NS}"
-    echo "  installPlanApproval: Automatic"
+    [ -n "$pincsv" ] && echo "  startingCSV: ${pincsv}"
+    echo "  installPlanApproval: Manual"
   } | oc apply -f - >/dev/null
   echo "    Subscription 已建立，等待 CSV Succeeded..."
+
+  approve_installplan "$ns" "$pkg" || exit 1
 
   local i phase
   for i in $(seq 1 "$CSV_TIMEOUT"); do
@@ -119,12 +145,12 @@ TOTAL=${#OPERATORS[@]}
 N=0
 for entry in "${OPERATORS[@]}"; do
   N=$((N+1))
-  IFS='|' read -r display pkg ns channel src og csvkey <<EOF
+  IFS='|' read -r display pkg ns channel src og csvkey pincsv <<EOF
 $entry
 EOF
   echo ""
   echo "===== [${N}/${TOTAL}] ${display} ====="
-  install_one "$display" "$pkg" "$ns" "$channel" "$src" "$og" "$csvkey"
+  install_one "$display" "$pkg" "$ns" "$channel" "$src" "$og" "$csvkey" "${pincsv:-}"
 done
 
 echo ""
