@@ -152,7 +152,7 @@ for entry in "${OPERATORS[@]}"; do
 $entry
 EOF
   echo ""
-  echo "===== [${N}/${TOTAL}] ${display} ====="
+  echo "===== 1.${N} (${N}/${TOTAL}) ${display} ====="
   install_one "$display" "$pkg" "$ns" "$channel" "$src" "$og" "$csvkey" "${pincsv:-}"
 done
 

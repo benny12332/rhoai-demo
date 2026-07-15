@@ -14,13 +14,13 @@ MODEL_NAME=qwen3-14b-w4a16
 MODEL_URI="pvc://models/Qwen3-14B-quantized.w4a16"
 
 # ---------- 12.1: 資料庫 ----------
-echo ">>> 12.1 部署 MariaDB"
+echo ">>> 11.1 部署 MariaDB"
 oc get ns $REG_NS >/dev/null 2>&1 || oc create ns $REG_NS
 oc apply -f mariadb.yaml
 oc rollout status statefulset/mariadb -n $REG_NS --timeout=300s
 
 # ---------- 12.1: ModelRegistry CR ----------
-echo ">>> 建立 ModelRegistry"
+echo ">>> 11.2 建立 ModelRegistry"
 oc apply -f - <<EOF
 apiVersion: modelregistry.opendatahub.io/v1beta1
 kind: ModelRegistry
@@ -44,7 +44,7 @@ spec:
     skipDBCreation: false
 EOF
 
-echo ">>> 等待 ModelRegistry Available"
+echo ">>> 11.3 等待 ModelRegistry Available"
 for i in $(seq 1 60); do
   # 注意: 叢集有兩個 modelregistry 同名 CRD, 必須用完整資源名
   st=$(oc get modelregistries.modelregistry.opendatahub.io ${REG_NAME} -n $REG_NS \
@@ -55,7 +55,7 @@ for i in $(seq 1 60); do
 done
 
 # ---------- 12.2: 註冊模型 (REST API, 經 port-forward) ----------
-echo ">>> 12.2 註冊模型: ${MODEL_NAME}"
+echo ">>> 11.4 註冊模型: ${MODEL_NAME}"
 oc port-forward -n $REG_NS "svc/${REG_NAME}" 18080:8080 >/dev/null 2>&1 &
 PF_PID=$!
 trap 'kill $PF_PID 2>/dev/null || true' EXIT

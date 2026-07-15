@@ -16,11 +16,11 @@ WB=qwen-workbench
 IS_NS=redhat-ods-applications
 
 # ---------- 11-1: 專案 + 儲存 ----------
-echo ">>> 11-1 建立專案與 PVC"
+echo ">>> 10.1 建立專案與 PVC"
 oc apply -f project-and-storage.yaml
 
 # ---------- 11-4: 模型下載 Job (先跑, RWO PVC 避免與 Workbench 搶掛載) ----------
-echo ">>> 11-4 下載模型 (Job)"
+echo ">>> 10.2 下載模型 (Job)"
 if oc get job download-qwen3-14b -n $NS >/dev/null 2>&1; then
   st=$(oc get job download-qwen3-14b -n $NS -o jsonpath='{.status.succeeded}' 2>/dev/null || true)
   if [ "$st" = "1" ]; then
@@ -33,12 +33,12 @@ if oc get job download-qwen3-14b -n $NS >/dev/null 2>&1; then
 else
   oc apply -f download-model-job.yaml
 fi
-echo ">>> 等待模型下載完成 (~10GB, 視網速約 5-20 分鐘)"
+echo ">>> 10.3 等待模型下載完成 (~10GB, 視網速約 5-20 分鐘)"
 oc wait --for=condition=complete job/download-qwen3-14b -n $NS --timeout=3600s
 echo "    模型下載完成"
 
 # ---------- 11-2: Workbench ----------
-echo ">>> 11-2 選擇 Workbench image"
+echo ">>> 10.4 選擇 Workbench image"
 # 注意: 要選 notebook image (含 Jupyter server)，不能選 runtime-* (pipeline 用, 會 CrashLoop)
 # 可用環境變數覆蓋: WB_IMAGE_STREAM=pytorch WB_IMAGE_TAG=3.4 ./setup-workbench.sh
 IS_NAME="${WB_IMAGE_STREAM:-}"
@@ -61,7 +61,7 @@ TAG="${WB_IMAGE_TAG:-}"
 IMAGE="image-registry.openshift-image-registry.svc:5000/${IS_NS}/${IS_NAME}:${TAG}"
 echo "    使用 image: ${IS_NAME}:${TAG}"
 
-echo ">>> 建立 Workbench ServiceAccount"
+echo ">>> 10.5 建立 Workbench ServiceAccount"
 oc apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
@@ -73,7 +73,7 @@ metadata:
       {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"${WB}"}}
 EOF
 
-echo ">>> 建立 Workbench (Notebook CR)"
+echo ">>> 10.6 建立 Workbench (Notebook CR)"
 oc apply -f - <<EOF
 apiVersion: kubeflow.org/v1
 kind: Notebook
@@ -141,7 +141,7 @@ spec:
 EOF
 
 # ---------- 11-3: 驗證 ----------
-echo ">>> 等待 Workbench Ready"
+echo ">>> 10.7 等待 Workbench Ready"
 for i in $(seq 1 60); do
   ready=$(oc get pod -n $NS -l app=${WB} -o jsonpath='{.items[0].status.containerStatuses[*].ready}' 2>/dev/null || true)
   echo "$ready" | grep -q true && ! echo "$ready" | grep -q false && echo "    Workbench Running" && break

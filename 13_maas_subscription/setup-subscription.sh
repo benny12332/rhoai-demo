@@ -14,10 +14,10 @@ DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}')
 MAAS="https://maas.${DOMAIN}"
 
 # ---------- 14.1: Subscription ----------
-echo ">>> 14.1 建立 MaaSModelRef + MaaSSubscription"
+echo ">>> 13.1 建立 MaaSModelRef + MaaSSubscription"
 oc apply -f subscription.yaml
 
-echo ">>> 等待 Subscription Ready"
+echo ">>> 13.2 等待 Subscription Ready"
 for i in $(seq 1 30); do
   st=$(oc get maassubscription demo-subscription -n models-as-a-service \
        -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)
@@ -29,7 +29,7 @@ for i in $(seq 1 30); do
 done
 
 # ---------- 14.2: API Key ----------
-echo ">>> 14.2 建立 API Key (經 maas-api)"
+echo ">>> 13.3 建立 API Key (經 maas-api)"
 RESP=$(curl -sk -X POST "${MAAS}/maas-api/v1/api-keys" \
   -H "Authorization: Bearer $(oc whoami -t)" \
   -H "Content-Type: application/json" \

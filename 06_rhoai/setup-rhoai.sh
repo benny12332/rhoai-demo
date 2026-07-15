@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 APP_NS=redhat-ods-applications
 
 # ---------- 7.1: 確認 RHOAI Operator ----------
-echo ">>> 7.1 等待 rhods-operator CSV Succeeded"
+echo ">>> 6.1 等待 rhods-operator CSV Succeeded"
 for i in $(seq 1 60); do
   phase=$(oc get csv -n redhat-ods-operator -o jsonpath='{.items[?(@.spec.displayName=="Red Hat OpenShift AI")].status.phase}' 2>/dev/null || true)
   [ "$phase" = "Succeeded" ] && echo "    OK" && break
@@ -22,7 +22,7 @@ for i in $(seq 1 60); do
 done
 
 # 等 DSCInitialization (operator 自動建立)
-echo ">>> 等待 DSCInitialization Ready"
+echo ">>> 6.2 等待 DSCInitialization Ready"
 for i in $(seq 1 30); do
   st=$(oc get dscinitialization -o jsonpath='{.items[0].status.phase}' 2>/dev/null || true)
   [ "$st" = "Ready" ] && echo "    OK" && break
@@ -31,11 +31,11 @@ for i in $(seq 1 30); do
 done
 
 # ---------- 7.2: DataScienceCluster ----------
-echo ">>> 7.2 建立 DataScienceCluster"
+echo ">>> 6.3 建立 DataScienceCluster"
 oc apply -f datasciencecluster.yaml
 
 # 不等 DSC Ready，依手冊只驗證 GatewayClass 與 dashboard 部署出現即可
-echo ">>> 等待 GatewayClass data-science-gateway-class"
+echo ">>> 6.4 等待 GatewayClass data-science-gateway-class"
 for i in $(seq 1 60); do
   acc=$(oc get gatewayclass data-science-gateway-class -o jsonpath='{.status.conditions[?(@.type=="Accepted")].status}' 2>/dev/null || true)
   [ "$acc" = "True" ] && echo "    Accepted" && break
@@ -43,7 +43,7 @@ for i in $(seq 1 60); do
   [ "$i" -eq 60 ] && { echo "!!! GatewayClass 未建立，檢查: oc describe dsc default-dsc"; exit 1; }
 done
 
-echo ">>> 等待 rhods-dashboard deployment 出現 (7.3 需要)"
+echo ">>> 6.5 等待 rhods-dashboard deployment 出現"
 for i in $(seq 1 60); do
   oc get deployment rhods-dashboard -n $APP_NS >/dev/null 2>&1 && echo "    OK" && break
   sleep 10
@@ -54,12 +54,12 @@ done
 # SM3/Istio 由 RHOAI 在本階段才自動安裝, 而 Kuadrant (05) 更早啟動時
 # 偵測不到 Gateway API provider, 會導致之後 TokenRateLimitPolicy 全部
 # NotAccepted (MaaS 訂閱 Degraded)。Istio 就緒後重啟讓它重新偵測。
-echo ">>> 重啟 Kuadrant/RHCL operators (重新偵測 Istio provider)"
+echo ">>> 6.6 重啟 Kuadrant/RHCL operators (重新偵測 Istio provider)"
 oc delete pod --all -n rhcl-operator --ignore-not-found >/dev/null 2>&1 || true
 oc delete pod --all -n kuadrant-system --ignore-not-found >/dev/null 2>&1 || true
 
 # ---------- 7.3: OdhDashboardConfig ----------
-echo ">>> 7.3 套用 OdhDashboardConfig"
+echo ">>> 6.7 套用 OdhDashboardConfig"
 # operator 會先建一份預設值，用 server-side apply 覆蓋
 oc apply --server-side --force-conflicts -f odh-dashboard-config.yaml
 # 重啟 dashboard 讓設定生效
@@ -67,7 +67,7 @@ oc rollout restart deployment/rhods-dashboard -n $APP_NS
 oc rollout status deployment/rhods-dashboard -n $APP_NS --timeout=300s
 
 # ---------- 驗證 ----------
-echo ">>> 驗證"
+echo ">>> 6.8 驗證"
 echo "--- GatewayClass:"
 oc get gatewayclass data-science-gateway-class
 echo "--- $APP_NS 異常 Pods (無輸出 = 全部正常):"

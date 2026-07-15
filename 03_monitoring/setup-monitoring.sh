@@ -14,7 +14,7 @@ cd "$(dirname "$0")"
 NS=utilities
 
 # ---------- 1. 啟用 User Workload Monitoring ----------
-echo ">>> 1. 啟用 User Workload Monitoring"
+echo ">>> 3.1 啟用 User Workload Monitoring"
 if oc get cm cluster-monitoring-config -n openshift-monitoring >/dev/null 2>&1; then
   cur=$(oc get cm cluster-monitoring-config -n openshift-monitoring -o jsonpath='{.data.config\.yaml}')
   if echo "$cur" | grep -q 'enableUserWorkload: *true'; then
@@ -45,7 +45,7 @@ EOF
 fi
 
 # ---------- 2. 驗證 UWM pods ----------
-echo ">>> 2. 等待 user workload monitoring pods"
+echo ">>> 3.2 等待 user workload monitoring pods"
 for i in $(seq 1 30); do
   n=$(oc get pods -n openshift-user-workload-monitoring --no-headers 2>/dev/null | grep -c Running || true)
   [ "$n" -ge 2 ] && echo "    $n 個 pods Running" && break
@@ -54,7 +54,7 @@ for i in $(seq 1 30); do
 done
 
 # ---------- 6a. 產生 datasource ConfigMap (需在 Grafana 啟動前) ----------
-echo ">>> 準備 Grafana provisioning ConfigMaps"
+echo ">>> 3.3 準備 Grafana provisioning ConfigMaps"
 oc get ns $NS >/dev/null 2>&1 || oc create ns $NS
 # 先建 SA/Secret (token 需要時間產生)
 oc apply -f - <<EOF >/dev/null
@@ -71,7 +71,7 @@ metadata:
 type: kubernetes.io/service-account-token
 EOF
 
-echo ">>> 取得 SA token 與 Thanos Querier 位置"
+echo ">>> 3.4 取得 SA token 與 Thanos Querier 位置"
 TOKEN=""
 for i in $(seq 1 12); do
   TOKEN=$(oc get secret grafana-sa-token -n $NS -o jsonpath='{.data.token}' 2>/dev/null | base64 -d || true)
@@ -127,7 +127,7 @@ else
 fi
 
 # ---------- 3-5. 部署 Grafana ----------
-echo ">>> 部署 Grafana"
+echo ">>> 3.5 部署 Grafana"
 oc apply -f grafana.yaml
 oc rollout restart deployment/grafana -n $NS >/dev/null 2>&1 || true
 oc rollout status deployment/grafana -n $NS --timeout=300s

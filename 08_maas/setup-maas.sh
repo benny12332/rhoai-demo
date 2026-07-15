@@ -12,12 +12,12 @@ cd "$(dirname "$0")"
 APP_NS=redhat-ods-applications
 
 # ---------- 9.1: 資料庫 ----------
-echo ">>> 9.1 部署 Postgres"
+echo ">>> 8.1 部署 Postgres"
 oc apply -f postgres.yaml
-echo ">>> 等待 Postgres Ready"
+echo ">>> 8.2 等待 Postgres Ready"
 oc rollout status statefulset/postgresql -n $APP_NS --timeout=300s
 
-echo ">>> 建立 maas-db-config Secret"
+echo ">>> 8.3 建立 maas-db-config Secret"
 oc create secret generic maas-db-config -n $APP_NS \
   --from-literal=DB_CONNECTION_URL="postgresql://maasadmin:maaspassword@postgresql.${APP_NS}.svc.cluster.local:5432/maasdb" \
   --dry-run=client -o yaml | oc apply -f -
@@ -26,12 +26,12 @@ oc create secret generic maas-db-config -n $APP_NS \
 oc get gatewayclass data-science-gateway-class >/dev/null \
   || { echo "!!! data-science-gateway-class 不存在，先完成 06_rhoai"; exit 1; }
 
-echo ">>> 9.2 建立 MaaS Gateway"
+echo ">>> 8.4 建立 MaaS Gateway"
 oc apply -f maas-gateway.yaml
 
 DOMAIN=$(oc get ingresses.config cluster -o jsonpath='{.spec.domain}')  # apps.<base_domain>
 HOST="maas.${DOMAIN}"
-echo ">>> 建立 Route: https://${HOST}"
+echo ">>> 8.5 建立 Route: https://${HOST}"
 oc apply -f - <<EOF
 kind: Route
 apiVersion: route.openshift.io/v1
@@ -53,7 +53,7 @@ spec:
 EOF
 
 # ---------- 9.2-4: 驗證 ----------
-echo ">>> 等待 MaaS Gateway Programmed"
+echo ">>> 8.6 等待 MaaS Gateway Programmed"
 for i in $(seq 1 30); do
   st=$(oc get gateway maas-default-gateway -n openshift-ingress \
        -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}' 2>/dev/null || true)

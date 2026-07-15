@@ -40,7 +40,7 @@ if [ "${#FOUND[@]}" -gt 0 ]; then
 fi
 
 # ---------- 1. 登入 ----------
-echo "=== OCP 登入 ==="
+echo "=== 0.1 OCP 登入 ==="
 read -r -p "API URL (例 https://api.cluster.example.com:6443): " OCP_API
 read -r -p "帳號 [admin]: " OCP_USER
 OCP_USER="${OCP_USER:-admin}"
@@ -57,7 +57,7 @@ oc get machineset -n $MAPI_NS
 
 # ---------- 2. 一般 worker MachineSet ----------
 echo ""
-echo "=== 一般 Worker ==="
+echo "=== 0.2 一般 Worker ==="
 WORKER_MS=$(oc get machineset -n $MAPI_NS -o name | sed 's|.*/||' | grep -v gpu | head -1 || true)
 if [ -z "$WORKER_MS" ]; then
   echo "!!! 找不到任何非 GPU 的 MachineSet，無法作為模板"; exit 1
@@ -215,7 +215,7 @@ watch_gpu_machine() { # watch_gpu_machine <machineset名>
 }
 
 echo ""
-echo "=== GPU Worker (${GPU_INSTANCE_TYPE}) ==="
+echo "=== 0.3 GPU Worker (${GPU_INSTANCE_TYPE}) ==="
 GPU_MS=$(oc get machineset -n $MAPI_NS -o name | sed 's|.*/||' | grep gpu | head -1 || true)
 
 if [ -n "$GPU_MS" ]; then
@@ -261,7 +261,7 @@ done
 
 # ---------- 4. 等待節點就緒 ----------
 echo ""
-echo ">>> 等待所有 Machines Running / 節點 Ready"
+echo ">>> 0.4 等待所有 Machines Running / 節點 Ready"
 for i in $(seq 1 40); do
   NOT_READY=$(oc get machines -n $MAPI_NS --no-headers | awk '$2!="Running" && $2!="" {c++} END{print c+0}')
   [ "$NOT_READY" -eq 0 ] && echo ">>> 全部 Machines Running" && break

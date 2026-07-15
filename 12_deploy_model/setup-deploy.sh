@@ -12,9 +12,9 @@ NS=demo
 
 # 模型改用 hf:// 直接下載, 不再掛 models PVC, 無 RWO 衝突問題
 
-echo ">>> 13.1 部署 vLLM 版本"
+echo ">>> 12.1 部署 vLLM 版本"
 oc apply -f llmisvc-qwen3-vllm.yaml
-echo ">>> 13.2 部署 llm-d 版本"
+echo ">>> 12.2 部署 llm-d 版本"
 oc apply -f llmisvc-qwen3-llmd.yaml
 
 # 若 11_model_registry 有註冊，補上關聯標籤 (Dashboard 可從 Registry 追蹤部署)
@@ -29,7 +29,7 @@ if [ -f ../11_model_registry/registry-ids.env ]; then
   echo ">>> 已標記 Model Registry 關聯 (model=${REGISTERED_MODEL_ID}, version=${MODEL_VERSION_ID})"
 fi
 
-echo ">>> 等待模型 Ready (載入 ~10GB 權重, 約 5-15 分鐘)"
+echo ">>> 12.3 等待模型 Ready (載入 ~10GB 權重, 約 5-15 分鐘)"
 for m in qwen3-14b-vllm qwen3-14b-llmd; do
   for i in $(seq 1 90); do
     st=$(oc get llminferenceservice $m -n $NS \

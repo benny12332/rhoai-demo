@@ -40,14 +40,14 @@ create_from_alm() { # create_from_alm <namespace> <csv關鍵字> <kind>
 # ---------- 1. NFD instance ----------
 wait_csv "$NFD_NS" "nfd"
 if oc get nodefeaturediscovery -n "$NFD_NS" --no-headers 2>/dev/null | grep -q .; then
-  echo ">>> NodeFeatureDiscovery 已存在，跳過"
+  echo ">>> 2.1 NodeFeatureDiscovery 已存在，跳過"
 else
-  echo ">>> 建立 NodeFeatureDiscovery (預設值)"
+  echo ">>> 2.1 建立 NodeFeatureDiscovery (預設值)"
   create_from_alm "$NFD_NS" "nfd" "NodeFeatureDiscovery"
 fi
 
 # 等 NFD 給 GPU 節點打上 PCI 標籤 (10de = NVIDIA vendor id)
-echo ">>> 等待 NFD 偵測到 NVIDIA GPU 節點"
+echo ">>> 2.2 等待 NFD 偵測到 NVIDIA GPU 節點"
 for i in $(seq 1 30); do
   n=$(oc get nodes -l feature.node.kubernetes.io/pci-10de.present=true --no-headers 2>/dev/null | wc -l | tr -d ' ')
   [ "$n" -gt 0 ] && echo "    偵測到 $n 個 GPU 節點" && break
@@ -58,14 +58,14 @@ done
 # ---------- 2. ClusterPolicy ----------
 wait_csv "$GPU_NS" "gpu-operator"
 if oc get clusterpolicy gpu-cluster-policy >/dev/null 2>&1; then
-  echo ">>> ClusterPolicy 已存在，跳過"
+  echo ">>> 2.3 ClusterPolicy 已存在，跳過"
 else
-  echo ">>> 建立 ClusterPolicy (預設值)"
+  echo ">>> 2.3 建立 ClusterPolicy (預設值)"
   create_from_alm "$GPU_NS" "gpu-operator" "ClusterPolicy"
 fi
 
 # ---------- 3. 驗證 ----------
-echo ">>> 等待 ClusterPolicy state=ready (driver 編譯安裝約需 10-20 分鐘)"
+echo ">>> 2.4 等待 ClusterPolicy state=ready (driver 編譯安裝約需 10-20 分鐘)"
 for i in $(seq 1 120); do
   state=$(oc get clusterpolicy gpu-cluster-policy -o jsonpath='{.status.state}' 2>/dev/null || true)
   [ "$state" = "ready" ] && echo "    ClusterPolicy ready" && break
@@ -73,12 +73,12 @@ for i in $(seq 1 120); do
   [ "$i" -eq 120 ] && { echo "!!! ClusterPolicy 未 ready，檢查: oc get pods -n $GPU_NS"; exit 1; }
 done
 
-echo ">>> 在 driver pod 內執行 nvidia-smi 驗證"
+echo ">>> 2.5 在 driver pod 內執行 nvidia-smi 驗證"
 pod=$(oc get pods -n "$GPU_NS" -o name | grep nvidia-driver-daemonset | head -1)
 oc exec -n "$GPU_NS" "${pod}" -c nvidia-driver-ctr -- nvidia-smi
 
 echo ""
-echo ">>> 節點可分配的 GPU 數量:"
+echo ">>> 2.6 節點可分配的 GPU 數量:"
 oc get nodes -l nvidia.com/gpu.present=true \
   -o custom-columns='NODE:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu'
 
