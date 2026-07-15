@@ -50,6 +50,14 @@ for i in $(seq 1 60); do
   [ "$i" -eq 60 ] && { echo "!!! rhods-dashboard 未出現"; exit 1; }
 done
 
+# ---------- 重啟 Kuadrant 系列 operator ----------
+# SM3/Istio 由 RHOAI 在本階段才自動安裝, 而 Kuadrant (05) 更早啟動時
+# 偵測不到 Gateway API provider, 會導致之後 TokenRateLimitPolicy 全部
+# NotAccepted (MaaS 訂閱 Degraded)。Istio 就緒後重啟讓它重新偵測。
+echo ">>> 重啟 Kuadrant/RHCL operators (重新偵測 Istio provider)"
+oc delete pod --all -n rhcl-operator --ignore-not-found >/dev/null 2>&1 || true
+oc delete pod --all -n kuadrant-system --ignore-not-found >/dev/null 2>&1 || true
+
 # ---------- 7.3: OdhDashboardConfig ----------
 echo ">>> 7.3 套用 OdhDashboardConfig"
 # operator 會先建一份預設值，用 server-side apply 覆蓋

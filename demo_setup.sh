@@ -78,7 +78,14 @@ pre_check() {
     06_rhoai)
       need_login || return 1
       oc get csv -n redhat-ods-operator 2>/dev/null | grep -q 'rhods-operator\.3\.' \
-        || { echo "${RED}RHOAI 3.x CSV 不存在 (channel 需 stable-3.4)${R}"; return 1; } ;;
+        || { echo "${RED}RHOAI 3.x CSV 不存在 (channel 需 stable-3.4)${R}"; return 1; }
+      # SM3 由 RHOAI 自管; 偵測到自行安裝的殘留會與其衝突 (intersecting operatorgroups)
+      if oc get ns openshift-servicemesh3-operator >/dev/null 2>&1 || \
+         oc get csv -n openshift-operators --no-headers 2>/dev/null | grep servicemesh | grep -qEv 'Succeeded'; then
+        echo "${RED}偵測到自行安裝/卡住的 Service Mesh 3 殘留，會與 RHOAI 自管的 SM3 衝突${R}"
+        echo "${YEL}請先執行 ./fix-sm3.sh 清理後再跑本 stage${R}"
+        return 1
+      fi ;;
     07_llmd|08_maas)
       need_login || return 1
       oc get gatewayclass data-science-gateway-class >/dev/null 2>&1 \

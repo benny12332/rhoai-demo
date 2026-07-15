@@ -37,7 +37,10 @@ RESP=$(curl -sk -X POST "${MAAS}/maas-api/v1/api-keys" \
 API_KEY=$(echo "$RESP" | jq -r '.token // .apiKey // .api_key // .key // .secret // empty')
 if [ -z "$API_KEY" ]; then
   echo "!!! 取得 API Key 失敗，maas-api 回應:"; echo "$RESP" | jq . 2>/dev/null || echo "$RESP"
-  echo "    診斷: oc logs -n models-as-a-service -l app=maas-api --tail=30"
+  echo "    診斷: oc logs -n redhat-ods-applications deploy/maas-api --tail=30"
+  echo "          oc get maassubscription demo-subscription -n models-as-a-service -o jsonpath='{.status}' | jq ."
+  echo "    若 TRLP 顯示 'Gateway API provider is not installed':"
+  echo "          oc delete pod --all -n rhcl-operator && oc delete pod --all -n kuadrant-system"
   exit 1
 fi
 echo "API_KEY=${API_KEY}" > maas-api-key.env
