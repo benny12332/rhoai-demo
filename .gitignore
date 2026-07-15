@@ -3,3 +3,4 @@
 13_maas_subscription/maas-api-key.env
 11_model_registry/registry-ids.env
 .DS_Store
+00_prepare/.ocp_credentials

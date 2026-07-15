@@ -41,13 +41,51 @@ fi
 
 # ---------- 1. 登入 ----------
 echo "=== 0.1 OCP 登入 ==="
-read -r -p "API URL (例 https://api.cluster.example.com:6443): " OCP_API
-read -r -p "帳號 [admin]: " OCP_USER
-OCP_USER="${OCP_USER:-admin}"
-read -r -s -p "密碼: " OCP_PASS; echo
+CRED_FILE="${REPO_DIR}/00_prepare/.ocp_credentials"
 
-oc login "$OCP_API" -u "$OCP_USER" -p "$OCP_PASS" --insecure-skip-tls-verify=true >/dev/null
+USE_SAVED=""
+if [ -f "$CRED_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$CRED_FILE"
+  echo ">>> 偵測到已儲存的 credential:"
+  echo "    API : ${OCP_API}"
+  echo "    帳號: ${OCP_USER}"
+  read -r -p "是否使用? [Y/n]: " ans
+  if [ "${ans:-Y}" = "n" ] || [ "${ans:-Y}" = "N" ]; then
+    USE_SAVED="no"
+  else
+    USE_SAVED="yes"
+  fi
+fi
+
+if [ "$USE_SAVED" != "yes" ]; then
+  read -r -p "API URL (例 https://api.cluster.example.com:6443): " OCP_API
+  read -r -p "帳號 [admin]: " OCP_USER
+  OCP_USER="${OCP_USER:-admin}"
+  read -r -s -p "密碼: " OCP_PASS; echo
+fi
+
+if ! oc login "$OCP_API" -u "$OCP_USER" -p "$OCP_PASS" --insecure-skip-tls-verify=true >/dev/null; then
+  # 已存的 credential 失效 (叢集換了/密碼改了) -> 移除並要求重新輸入
+  echo "!!! 登入失敗"
+  if [ "$USE_SAVED" = "yes" ]; then
+    echo ">>> 已儲存的 credential 無效，移除 ${CRED_FILE#$REPO_DIR/}，請重跑 prepare.sh 重新輸入"
+    rm -f "$CRED_FILE"
+  fi
+  exit 1
+fi
 echo ">>> 登入成功: $(oc whoami) @ $(oc whoami --show-server)"
+
+# 登入成功後儲存 credential 供下次使用 (僅本機, 已加入 .gitignore, 權限 600)
+if [ "$USE_SAVED" != "yes" ]; then
+  cat > "$CRED_FILE" <<EOF
+OCP_API='${OCP_API}'
+OCP_USER='${OCP_USER}'
+OCP_PASS='${OCP_PASS}'
+EOF
+  chmod 600 "$CRED_FILE"
+  echo ">>> credential 已儲存至 ${CRED_FILE#$REPO_DIR/} (下次重跑會詢問是否沿用)"
+fi
 
 INFRA=$(oc get infrastructure cluster -o jsonpath='{.status.infrastructureName}')
 REGION=$(oc get infrastructure cluster -o jsonpath='{.status.platformStatus.aws.region}')
