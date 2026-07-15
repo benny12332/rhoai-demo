@@ -139,7 +139,7 @@ do_verify() {
         "cert-manager-operator|cert-manager" "openshift-nfd|nfd" "nvidia-gpu-operator|gpu-operator" \
         "rhcl-operator|rhcl-operator" "openshift-lws-operator|leader-worker-set" \
         "openshift-kueue-operator|kueue" "openshift-jobset-operator|jobset" \
-        "openshift-keda|custom-metrics-autoscaler" "openshift-servicemesh3-operator|servicemeshoperator3" \
+        "openshift-keda|custom-metrics-autoscaler" \
         "redhat-ods-operator|rhods-operator" "openshift-cluster-observability-operator|cluster-observability" \
         "openshift-tempo-operator|tempo" "openshift-opentelemetry-operator|opentelemetry"; do
         local ns="${e%%|*}" key="${e##*|}"

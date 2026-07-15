@@ -24,7 +24,10 @@ OPERATORS=(
   "Red Hat build of Kueue|kueue-operator|openshift-kueue-operator||redhat-operators|all|kueue|"
   "Job Set Operator|job-set|openshift-jobset-operator|stable-v1.0|redhat-operators|own|jobset|"
   "Custom Metrics Autoscaler|openshift-custom-metrics-autoscaler-operator|openshift-keda|stable|redhat-operators|all|custom-metrics-autoscaler|"
-  "Service Mesh 3|servicemeshoperator3|openshift-servicemesh3-operator|stable|redhat-operators|all|servicemeshoperator3|"
+  # 注意: Service Mesh 3 不要自行安裝!
+  # RHOAI 3.4 的 rhods-operator 會在建立 DSC 時自動安裝它驗證過的 SM3 版本;
+  # 自行預裝會造成 "intersecting operatorgroups provide the same apis" 衝突,
+  # 且 RHOAI 指定的 Istio 版本會被較新的 SM3 webhook 以 EOL 拒絕 -> GatewayClass 卡死
   "Red Hat OpenShift AI|rhods-operator|redhat-ods-operator|stable-3.4|redhat-operators|all|rhods-operator.3|"
   "Cluster Observability|cluster-observability-operator|openshift-cluster-observability-operator|stable|redhat-operators|all|cluster-observability|"
   "Tempo Operator|tempo-product|openshift-tempo-operator|stable|redhat-operators|all|tempo|"
